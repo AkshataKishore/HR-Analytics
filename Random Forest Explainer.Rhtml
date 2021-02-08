@@ -1,0 +1,121 @@
+<html>
+
+<head>
+<title>Random Forest Explainer for HR Attrition Analysis  </title>
+</head>
+
+<body>
+
+<p>This is an Random Forest Explainer:</p>
+<!--begin.rcode
+
+library(randomForest)
+library(tidyverse)
+library(dbplyr)
+#devtools::install_github("MI2DataLab/randomForestExplainer")
+library(randomForestExplainer)
+end.rcode-->
+
+
+<!--begin.rcode
+
+library(readr)
+WA_Fn_UseC_HR_Employee_Attrition <- read_csv("C:/Users/Nikhil/Desktop/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+View(WA_Fn_UseC_HR_Employee_Attrition)
+dataHR<-WA_Fn_UseC_HR_Employee_Attrition
+str(dataHR)
+end.rcode-->
+
+<!--begin.rcode
+names(dataHR)[names(dataHR) == "ï..Age"] <- "Age"
+dataHR$Education <- as.factor(dataHR$Education)
+dataHR$EnvironmentSatisfaction <- as.factor(dataHR$EnvironmentSatisfaction)
+dataHR$JobInvolvement <- as.factor(dataHR$JobInvolvement)
+dataHR$JobLevel <- as.factor(dataHR$JobLevel)
+dataHR$JobSatisfaction <- as.factor(dataHR$JobSatisfaction)
+dataHR$StockOptionLevel <- as.factor(dataHR$StockOptionLevel)
+dataHR$PerformanceRating <- as.factor(dataHR$PerformanceRating)
+dataHR$RelationshipSatisfaction <- as.factor(dataHR$RelationshipSatisfaction)
+dataHR$WorkLifeBalance <- as.factor(dataHR$WorkLifeBalance)
+end.rcode-->
+
+<!--begin.rcode
+install.packages("ROSE")
+library(ROSE)
+dataHR <- dataHR %>% select(-EmployeeCount, -StandardHours, -Over18)
+set.seed(18)
+index <- sample(nrow(dataHR), nrow(dataHR)*0.8)
+data_train <- dataHR[index, ]
+data_test <- dataHR[-index,]
+train_balanced <- ovun.sample(Attrition ~ ., data = data_train, method = "over",                              N = 996*2, seed = 1)$data
+table(train_balanced$Attrition)
+end.rcode-->
+
+
+<p>You can also embed plots, for example:</p>
+
+<!--begin.rcode fig.width=7, fig.height=6
+set.seed(2017)
+forest <- randomForest(as.factor(Attrition) ~ ., data = data_train, localImp = TRUE)
+forest
+end.rcode-->
+
+
+<!--begin.rcode fig.width=7, fig.height=6
+
+min_depth_frame <- min_depth_distribution(forest)
+head(min_depth_frame, n = 10)
+
+end.rcode-->
+
+
+<!--begin.rcode fig.width=7, fig.height=6
+
+plot_min_depth_distribution(min_depth_frame)
+plot_min_depth_distribution(min_depth_frame, mean_sample = "relevant_trees", k = 15)
+
+end.rcode-->
+
+
+<!--begin.rcode fig.width=7, fig.height=6
+
+importance_frame <- measure_importance(forest)
+importance_frame
+end.rcode-->
+
+
+<!--begin.rcode fig.width=7, fig.height=6
+
+plot_multi_way_importance(importance_frame, size_measure = "no_of_nodes")
+plot_importance_ggpairs(importance_frame)
+plot_importance_rankings(importance_frame)
+(vars <- important_variables(importance_frame, k = 5, measures = c("mean_min_depth", "no_of_trees")))
+
+end.rcode-->
+
+
+<!--begin.rcode fig.width=7, fig.height=6
+(vars <- important_variables(importance_frame, k = 5, measures = c("mean_min_depth", "no_of_trees")))
+interactions_frame <- min_depth_interactions(forest, vars)
+head(interactions_frame[order(interactions_frame$occurrences, decreasing = TRUE), ])
+plot_min_depth_interactions(interactions_frame)
+end.rcode-->
+
+
+
+<!--begin.rcode fig.width=7, fig.height=6
+
+plot_predict_interaction(forest, data_test, "DailyRate", "MonthlyIncome")
+plot_predict_interaction(forest, data_test, "Age", "MonthlyIncome")
+plot_predict_interaction(forest, data_test, "Age", "DistanceFromHome")
+plot_predict_interaction(forest, data_train, "Age", "NumCompaniesWorked")
+#explain_forest(forest, interactions = TRUE, data = data_train)
+end.rcode-->
+
+
+<!--begin.rcode fig.width=7, fig.height=6
+
+end.rcode-->
+
+</body>
+</html>
